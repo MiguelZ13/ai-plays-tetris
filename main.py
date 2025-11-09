@@ -45,12 +45,62 @@ def draw_board(screen, board, block_size):
                     (30, 30, 30),
                     (x * block_size, y * block_size, block_size, block_size)
                 )
-                pygame.draw.rect(
-                    screen,
-                    (50, 50, 50),
-                    (x * block_size, y * block_size, block_size, block_size),
-                    1
-                )
+
+# rotate_with_srs.py
+def rotate(block, board, cols, rows, direction=1):
+    """
+    Rotate block using SRS wall-kicks.
+    direction: +1 clockwise, -1 counterclockwise
+    Returns True if rotation succeeded (possibly with a kick), False otherwise.
+    Assumes block.rotation in [0..3], block.rotations exists, block.shape_name is 'I','O','T','S','Z','J','L'
+    """
+    from_rot = block.rotation
+    to_rot = (block.rotation + direction) % len(block.rotations)
+
+    JLTSZ_KICKS = {
+        (0, 1): [(0,0), (-1,0), (-1,1), (0,-2), (-1,-2)],
+        (1, 0): [(0,0), (1,0), (1,-1), (0,2), (1,2)],
+        (1, 2): [(0,0), (1,0), (1,-1), (0,2), (1,2)],
+        (2, 1): [(0,0), (-1,0), (-1,1), (0,-2), (-1,-2)],
+        (2, 3): [(0,0), (1,0), (1,1), (0,-2), (1,-2)],
+        (3, 2): [(0,0), (-1,0), (-1,-1), (0,2), (-1,2)],
+        (3, 0): [(0,0), (-1,0), (-1,-1), (0,2), (-1,2)],
+        (0, 3): [(0,0), (1,0), (1,1), (0,-2), (1,-2)],
+    }
+
+    I_KICKS = {
+        (0, 1): [(0,0), (-2,0), (1,0), (-2,-1), (1,2)],
+        (1, 0): [(0,0), (2,0), (-1,0), (2,1), (-1,-2)],
+        (1, 2): [(0,0), (-1,0), (2,0), (-1,2), (2,-1)],
+        (2, 1): [(0,0), (1,0), (-2,0), (1,-2), (-2,1)],
+        (2, 3): [(0,0), (2,0), (-1,0), (2,1), (-1,-2)],
+        (3, 2): [(0,0), (-2,0), (1,0), (-2,-1), (1,2)],
+        (3, 0): [(0,0), (1,0), (-2,0), (1,-2), (-2,1)],
+        (0, 3): [(0,0), (-1,0), (2,0), (-1,2), (2,-1)],
+    }
+
+    if block.name == 'O':
+        block.rotation = to_rot
+        return True
+
+    if block.name == 'I':
+        kicks = I_KICKS.get((from_rot, to_rot))
+    else:
+        kicks = JLTSZ_KICKS.get((from_rot, to_rot))
+
+    if kicks is None:
+        kicks = [(0,0), (-1,0), (1,0), (0,-1)]
+
+    for dx, dy in kicks:
+        if valid_position(block, board, cols, rows, dx=dx, dy=dy, rotation=to_rot):
+            block.x += dx
+            block.y += dy
+            block.rotation = to_rot
+            return True
+
+    return False
+
+
 
 x,y = COLS // 2, 0
 
@@ -73,6 +123,12 @@ while running:
                 for (cx, cy) in block.cells:
                     board[cy][cx] = block.color
                 block = Tetromino('T', 9, 0)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_a:
+                rotate(block, board, COLS, ROWS, -1)
+            if event.key == pygame.K_d:
+                rotate(block, board, COLS, ROWS, 1)
+                
 
     keys = pygame.key.get_pressed()
     
@@ -87,9 +143,6 @@ while running:
         if (valid_position(block, board, COLS, ROWS, 0, 1)):
             block.y += 1
     
-    block.x = max(0, min(COLS - 3, block.x))
-    block.y = max(0, min(ROWS - 2, block.y))
-
     draw_board(screen, board, BLOCK_SIZE)
     for (x, y) in block.cells:
         pygame.draw.rect(
