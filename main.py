@@ -1,6 +1,7 @@
 import pygame
 import sys
 from shapes import Tetromino
+from random import randint
 
 pygame.init()
 
@@ -48,12 +49,6 @@ def draw_board(screen, board, block_size):
 
 # rotate_with_srs.py
 def rotate(block, board, cols, rows, direction=1):
-    """
-    Rotate block using SRS wall-kicks.
-    direction: +1 clockwise, -1 counterclockwise
-    Returns True if rotation succeeded (possibly with a kick), False otherwise.
-    Assumes block.rotation in [0..3], block.rotations exists, block.shape_name is 'I','O','T','S','Z','J','L'
-    """
     from_rot = block.rotation
     to_rot = (block.rotation + direction) % len(block.rotations)
 
@@ -100,7 +95,9 @@ def rotate(block, board, cols, rows, direction=1):
 
     return False
 
-
+shapes = ('T', 'I', 'O', 'S', 'Z', 'L', 'J')
+def generate_shape():
+    return shapes[randint(0, len(shapes) - 1)]
 
 x,y = COLS // 2, 0
 
@@ -112,6 +109,8 @@ pygame.time.set_timer(MOVE_EVENT, 1000)
 
 block = Tetromino('I', x, y)
 
+shapeQueue = [generate_shape() for _ in range(4)]
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -122,7 +121,9 @@ while running:
             else:
                 for (cx, cy) in block.cells:
                     board[cy][cx] = block.color
-                block = Tetromino('T', 9, 0)
+                block = Tetromino(shapeQueue[0], 9, 0)
+                shapeQueue.pop(0)
+                shapeQueue.insert(3, generate_shape())
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 rotate(block, board, COLS, ROWS, -1)
