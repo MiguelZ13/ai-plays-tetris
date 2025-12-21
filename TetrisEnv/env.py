@@ -12,9 +12,9 @@ class TetrisGame:
         self.observation_space = spaces.Dict({
             "board": spaces.Box(
                 low=0,
-                high=2,
+                high=255,
                 shape=(20, 10),
-                dtype=np.int8
+                dtype=np.uint8
             ),
             
             # 0 = 'I'
