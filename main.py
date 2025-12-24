@@ -15,6 +15,17 @@ pygame.display.set_caption("AI Plays Tetris")
 
 board = [[0 for _ in range(COLS)] for _ in range(ROWS)]
 
+score = 0
+font = pygame.font.SysFont("arial", 24)
+
+LINE_SCORES = {
+    1: 100,
+    2: 300,
+    3: 500,
+    4: 800
+}
+
+
 def valid_position(tetromino, board, cols, rows, dx=0, dy=0, rotation=None):
     rot = tetromino.rotation if rotation is None else rotation
     for (ox, oy) in tetromino.rotations[rot]:
@@ -47,7 +58,7 @@ def draw_board(screen, board, block_size):
                     (x * block_size, y * block_size, block_size, block_size)
                 )
 
-# rotate_with_srs.py
+
 def rotate(block, board, cols, rows, direction=1):
     from_rot = block.rotation
     to_rot = (block.rotation + direction) % len(block.rotations)
@@ -95,6 +106,27 @@ def rotate(block, board, cols, rows, direction=1):
 
     return False
 
+def clear_lines(board):
+    global score
+
+    new_board = []
+    cleared = 0
+
+    for row in board:
+        if all(cell != 0 for cell in row):
+            cleared += 1
+        else:
+            new_board.append(row)
+
+    for _ in range(cleared):
+        new_board.insert(0, [0 for _ in range(COLS)])
+
+    if cleared > 0:
+        score += LINE_SCORES.get(cleared, 0)
+
+    return new_board
+
+
 shapes = ('T', 'I', 'O', 'S', 'Z', 'L', 'J')
 def generate_shape():
     return shapes[randint(0, len(shapes) - 1)]
@@ -107,7 +139,7 @@ running = True
 MOVE_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(MOVE_EVENT, 1000)
 
-block = Tetromino('I', x, y)
+block = Tetromino(generate_shape(), x, y)
 
 shapeQueue = [generate_shape() for _ in range(4)]
 
@@ -121,9 +153,13 @@ while running:
             else:
                 for (cx, cy) in block.cells:
                     board[cy][cx] = block.color
+
+                board = clear_lines(board)
+
                 block = Tetromino(shapeQueue[0], 9, 0)
                 shapeQueue.pop(0)
                 shapeQueue.insert(3, generate_shape())
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 rotate(block, board, COLS, ROWS, -1)
@@ -144,6 +180,8 @@ while running:
         if (valid_position(block, board, COLS, ROWS, 0, 1)):
             block.y += 1
     
+    screen.fill((0, 0, 0))
+    
     draw_board(screen, board, BLOCK_SIZE)
     for (x, y) in block.cells:
         pygame.draw.rect(
@@ -151,6 +189,9 @@ while running:
             block.color,
             (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
         )
+
+    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))
 
     pygame.display.flip()
 
