@@ -30,6 +30,8 @@ LINE_SCORES = {
 held_piece = None
 can_hold = True
 
+game_over = False
+
 def valid_position(tetromino, board, cols, rows, dx=0, dy=0, rotation=None):
     rot = tetromino.rotation if rotation is None else rotation
     for (ox, oy) in tetromino.rotations[rot]:
@@ -185,6 +187,10 @@ block = Tetromino(generate_shape(), x, y)
 shapeQueue = [generate_shape() for _ in range(3)]
 
 while running:
+    if game_over:
+        pygame.time.delay(2000)
+        running = False
+        
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -193,7 +199,13 @@ while running:
                 block.y += 1
             else:
                 for (cx, cy) in block.cells:
-                    board[cy][cx] = block.color
+                    if cy < 0:
+                        game_over = True
+                    else:    
+                        board[cy][cx] = block.color
+                
+                if game_over:
+                    break
 
                 board = clear_lines(board)
 
@@ -202,6 +214,19 @@ while running:
                 shapeQueue.append(generate_shape())
                 
                 can_hold = True
+
+                if not valid_position(block, board, COLS, ROWS):
+                    game_over = True
+        
+        if game_over:
+            over_text = font.render("GAME OVER", True, (255, 255, 255))
+            screen.blit(
+                over_text,
+                (
+                    WIDTH // 2 - over_text.get_width() // 2,
+                    HEIGHT // 2 - over_text.get_height() // 2
+                )
+            )
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
