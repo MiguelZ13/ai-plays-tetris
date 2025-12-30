@@ -10,7 +10,9 @@ ROWS, COLS = 15, 20
 BLOCK_SIZE = 30
 WIDTH = COLS * BLOCK_SIZE
 HEIGHT = ROWS * BLOCK_SIZE
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+SIDE_PANEL_WIDTH = 5 * BLOCK_SIZE
+PANEL_X = WIDTH + 10
+screen = pygame.display.set_mode((WIDTH + SIDE_PANEL_WIDTH, HEIGHT))
 pygame.display.set_caption("AI Plays Tetris")
 
 board = [[0 for _ in range(COLS)] for _ in range(ROWS)]
@@ -25,6 +27,8 @@ LINE_SCORES = {
     4: 800
 }
 
+held_piece = None
+can_hold = True
 
 def valid_position(tetromino, board, cols, rows, dx=0, dy=0, rotation=None):
     rot = tetromino.rotation if rotation is None else rotation
@@ -126,6 +130,43 @@ def clear_lines(board):
 
     return new_board
 
+def draw_mini_tetromino(screen, shape, x, y):
+    temp = Tetromino(shape, x, y)
+    for ox, oy in temp.rotations[0]:
+        pygame.draw.rect(
+            screen,
+            temp.color,
+            (
+                x + ox * BLOCK_SIZE,
+                y + oy * BLOCK_SIZE,
+                BLOCK_SIZE,
+                BLOCK_SIZE
+            )
+        )
+
+def draw_side_panel(screen, shapeQueue, held_piece):
+    next_text = font.render("NEXT", True, (255, 255, 255))
+    held_text = font.render("HELD", True, (255, 255, 255))
+    
+    screen.blit(next_text, (PANEL_X, 20))
+    screen.blit(held_text, (PANEL_X, 310))
+    
+    for i, shape in enumerate(shapeQueue):
+        draw_mini_tetromino(
+            screen, 
+            shape, 
+            PANEL_X, 
+            60 + i * 90
+        )
+    
+    if held_piece:
+        draw_mini_tetromino(
+            screen,
+            held_piece,
+            PANEL_X,
+            350
+        )
+    
 
 shapes = ('T', 'I', 'O', 'S', 'Z', 'L', 'J')
 def generate_shape():
@@ -141,7 +182,7 @@ pygame.time.set_timer(MOVE_EVENT, 1000)
 
 block = Tetromino(generate_shape(), x, y)
 
-shapeQueue = [generate_shape() for _ in range(4)]
+shapeQueue = [generate_shape() for _ in range(3)]
 
 while running:
     for event in pygame.event.get():
@@ -158,13 +199,25 @@ while running:
 
                 block = Tetromino(shapeQueue[0], 9, 0)
                 shapeQueue.pop(0)
-                shapeQueue.insert(3, generate_shape())
+                shapeQueue.append(generate_shape())
+                
+                can_hold = True
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 rotate(block, board, COLS, ROWS, -1)
             if event.key == pygame.K_d:
                 rotate(block, board, COLS, ROWS, 1)
+            if event.key == pygame.K_c and can_hold:
+                if held_piece is None:
+                    held_piece = block.name
+                    block = Tetromino(shapeQueue[0], COLS // 2, 0)
+                    shapeQueue.pop(0)
+                    shapeQueue.append(generate_shape())
+                else:
+                    held_piece, block.name = block.name, held_piece
+                    block = Tetromino(block.name, COLS // 2, 0)
+                can_hold = False
                 
 
     keys = pygame.key.get_pressed()
@@ -192,6 +245,8 @@ while running:
 
     score_text = font.render(f"Score: {score}", True, (255, 255, 255))
     screen.blit(score_text, (10, 10))
+    
+    draw_side_panel(screen, shapeQueue, held_piece)
 
     pygame.display.flip()
 
