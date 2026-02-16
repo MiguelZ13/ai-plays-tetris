@@ -25,7 +25,7 @@ class TetrisAgent:
 
         self.training_error = []
     
-    def get_action(self, obs: tuple[tuple[int]]) -> int:
+    def get_action(self, obs) -> int:
         if np.random.random() < self.epsilon:
             return self.env.action_space.sample()
         else:
