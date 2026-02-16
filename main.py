@@ -183,13 +183,27 @@ MOVE_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(MOVE_EVENT, 1000)
 
 block = Tetromino(generate_shape(), x, y)
+if not valid_position(block, board, COLS, ROWS):
+    game_over = True
 
 shapeQueue = [generate_shape() for _ in range(3)]
 
 while running:
     if game_over:
+        screen.fill((0, 0, 0))
+        draw_board(screen, board, BLOCK_SIZE)
+        over_text = font.render("GAME OVER", True, (255, 255, 255))
+        screen.blit(
+            over_text,
+            (
+                WIDTH // 2 - over_text.get_width() // 2,
+                HEIGHT // 2 - over_text.get_height() // 2
+            )
+        )
+        pygame.display.flip()
         pygame.time.delay(2000)
         running = False
+        continue
         
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -217,16 +231,6 @@ while running:
 
                 if not valid_position(block, board, COLS, ROWS):
                     game_over = True
-        
-        if game_over:
-            over_text = font.render("GAME OVER", True, (255, 255, 255))
-            screen.blit(
-                over_text,
-                (
-                    WIDTH // 2 - over_text.get_width() // 2,
-                    HEIGHT // 2 - over_text.get_height() // 2
-                )
-            )
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
@@ -243,6 +247,8 @@ while running:
                     held_piece, block.name = block.name, held_piece
                     block = Tetromino(block.name, COLS // 2, 0)
                 can_hold = False
+                if not valid_position(block, board, COLS, ROWS):
+                    game_over = True
                 
 
     keys = pygame.key.get_pressed()
